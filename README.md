@@ -1,5 +1,12 @@
 # WorldAI
 
+<p align="center">
+  <a href="https://github.com/CJX0712/worldai/actions/workflows/ci.yml"><img src="https://github.com/CJX0712/worldai/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="https://github.com/CJX0712/worldai/releases"><img src="https://img.shields.io/github/v/release/CJX0712/worldai?sort=semver" alt="release"></a>
+  <a href="https://github.com/CJX0712/worldai/blob/main/LICENSE"><img src="https://img.shields.io/github/license/CJX0712/worldai" alt="license"></a>
+  <img src="https://img.shields.io/badge/author-%E6%99%A8%E6%98%9F-1f6feb" alt="author">
+</p>
+
 > Author: 晨星 · License: MIT · Repo: https://github.com/CJX0712/worldai
 
 **本地优先、CPU 可跑、一键可复现的 RAG + Agent 平台。**
