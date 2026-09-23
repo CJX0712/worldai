@@ -1,0 +1,4 @@
+# Author: 晨星
+# Dev/test dependencies
+-r requirements.txt
+pytest>=8.0

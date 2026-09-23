@@ -1,0 +1,274 @@
+# Author: 晨星
+openapi: 3.0.3
+info:
+  title: WorldAI API
+  version: 0.1.0
+  description: 本地优先 RAG + Agent 平台。统一响应信封 {code, data, message}。
+servers:
+  - url: http://127.0.0.1:8765/api/v1
+paths:
+  /health:
+    get:
+      summary: 健康检查
+      responses:
+        "200":
+          description: 服务存活
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthEnvelope"
+  /stats:
+    get:
+      summary: 文档与块统计
+      responses:
+        "200":
+          description: 统计信息
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsEnvelope"
+  /documents:
+    post:
+      summary: 摄入文本文档（自动分块入索引）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentIn"
+      responses:
+        "201":
+          description: 摄入成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentOutEnvelope"
+        "400":
+          description: 文档零分块
+        "409":
+          description: 重复文档（确定性 doc_id 命中）
+        "422":
+          description: 校验失败（空 title/text 等）
+    get:
+      summary: 文档列表
+      responses:
+        "200":
+          description: 列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocListEnvelope"
+  /query:
+    post:
+      summary: RAG 问答（JSON 或 SSE 流式）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryIn"
+      responses:
+        "200":
+          description: stream=false 返回 JSON 信封；stream=true 返回 text/event-stream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryOutEnvelope"
+            text/event-stream:
+              schema:
+                type: string
+                description: "事件序列：meta -> token* -> done"
+        "422":
+          description: 校验失败（空 question / top_k 越界）
+  /agent:
+    post:
+      summary: Agent 工具调用（search_knowledge / calculator）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentIn"
+      responses:
+        "200":
+          description: 答案与执行轨迹
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentOutEnvelope"
+  /eval:
+    post:
+      summary: 离线黄金集评测（全新管道，确定性）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvalIn"
+      responses:
+        "200":
+          description: 聚合指标与逐题明细
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalOutEnvelope"
+  /trace:
+    get:
+      summary: 检索排序追踪（dense/bm25/rerank/fused）
+      parameters:
+        - name: question
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: top_k
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: 四路排序
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraceEnvelope"
+components:
+  schemas:
+    DocumentIn:
+      type: object
+      required: [title, text]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        text: { type: string, minLength: 1, maxLength: 2000000 }
+    QueryIn:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 4000 }
+        top_k: { type: integer, minimum: 1, maximum: 20, default: 5 }
+        mode: { type: string, enum: [hybrid, dense, bm25], default: hybrid }
+        stream: { type: boolean, default: false }
+    AgentIn:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 4000 }
+    EvalIn:
+      type: object
+      properties:
+        top_k: { type: integer, minimum: 1, maximum: 10, default: 3 }
+    Citation:
+      type: object
+      properties:
+        chunk_id: { type: string }
+        doc_id: { type: string }
+        snippet: { type: string }
+        score: { type: number }
+    AgentStep:
+      type: object
+      properties:
+        thought: { type: string }
+        action: { type: string }
+        action_input: { type: string }
+        observation: { type: string }
+    HealthEnvelope:
+      type: object
+      properties:
+        code: { type: integer, example: 0 }
+        data:
+          type: object
+          properties:
+            status: { type: string, example: up }
+        message: { type: string, example: ok }
+    StatsEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            documents: { type: integer }
+            chunks: { type: integer }
+        message: { type: string }
+    DocumentOutEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            doc_id: { type: string }
+            title: { type: string }
+            chunks: { type: integer }
+        message: { type: string }
+    DocListEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              title: { type: string }
+              chars: { type: string }
+        message: { type: string }
+    QueryOutEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            question: { type: string }
+            answer: { type: string }
+            provider: { type: string }
+            retrieval_mode: { type: string }
+            citations:
+              type: array
+              items:
+                $ref: "#/components/schemas/Citation"
+        message: { type: string }
+    AgentOutEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            question: { type: string }
+            answer: { type: string }
+            steps:
+              type: array
+              items:
+                $ref: "#/components/schemas/AgentStep"
+            tool_calls: { type: integer }
+        message: { type: string }
+    EvalOutEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            aggregate:
+              type: object
+              additionalProperties: { type: number }
+            details:
+              type: array
+              items:
+                type: object
+        message: { type: string }
+    TraceEnvelope:
+      type: object
+      properties:
+        code: { type: integer }
+        data:
+          type: object
+          properties:
+            dense_order: { type: array, items: { type: string } }
+            bm25_order: { type: array, items: { type: string } }
+            rerank_order: { type: array, items: { type: string } }
+            fused_order: { type: array, items: { type: string } }
+        message: { type: string }

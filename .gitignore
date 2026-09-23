@@ -1,0 +1,26 @@
+# Author: 晨星
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Node / web
+web/node_modules/
+web/dist/
+
+# Models & data (never commit weights)
+models/
+*.gguf
+*.onnx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
