@@ -53,7 +53,7 @@ jobs:
             echo "no tests/ directory - skipping"
           fi
 
-      - name: Self-verification script (advisory: may rely on local OS tooling)
+      - name: Self-verification script (advisory, may rely on local OS tooling)
         continue-on-error: true
         run: |
           for s in scripts/verify.py scripts/selfcheck.py tools/verify.py; do
