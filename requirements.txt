@@ -6,11 +6,11 @@ uvicorn>=0.30
 pydantic>=2.5
 numpy>=1.26
 rank-bm25>=0.2.2
-pypdf>=4.0
+pypdf>=6.19.0
 httpx>=0.27
 loguru>=0.7
 # Production providers (optional at runtime, selected via env):
-faiss-cpu>=1.8
+faiss-cpu>=1.15.1
 fastembed>=0.4
-llama-cpp-python>=0.2.79
+llama-cpp-python>=0.3.35
 # Dev/test: requirements-dev.txt (pytest)
