@@ -35,16 +35,15 @@ jobs:
       - name: Byte-compile gate (hard)
         run: python -m compileall -q -x '\.git|\.venv|node_modules' .
 
-      - name: Install dependencies (offline-friendly, advisory)
+      - name: Install dependencies (test subset, no compiler needed)
         run: |
           python -m pip install --upgrade pip
-          for f in requirements.txt requirements-dev.txt requirements.lock.txt; do
-            [ -f "$f" ] || continue
-            grep -viE '^(llama[-_]cpp[-_]python|pywin32|audioop-lts)' "$f" > "/tmp/f_$f" || true
-            python -m pip install -r "/tmp/f_$f" || echo "::warning::install from $f failed (advisory)"
-          done
+          # CI 只跑 mock/hash provider，不安装生产可选依赖：
+          #   llama-cpp-python 需本地编译 llama.cpp，faiss-cpu / fastembed 体积大。
+          # 注意：requirements-dev.txt 里的 `-r requirements.txt` 会绕过过滤正则，
+          # 把 llama-cpp-python 重新拖进来并导致整批安装失败，因此这里显式列举。
+          python -m pip install fastapi uvicorn pydantic numpy rank-bm25 pypdf httpx loguru pytest
           python -m pip install -e . --no-deps || echo "::warning::editable install skipped (advisory)"
-          python -m pip install pytest || echo "::warning::pytest install failed (advisory)"
 
       - name: Unit tests
         run: |
